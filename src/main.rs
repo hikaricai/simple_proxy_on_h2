@@ -31,7 +31,7 @@ impl AsyncWrite for AsyncWritePart{
         match poll {
             Poll::Ready(Some(ret)) => match ret {
                 Ok(size) => {
-                    let cap = send_stream.capacity();
+                    let _cap = send_stream.capacity();
                     let mut send_buf = BytesMut::with_capacity(size).writer();
                     let write_num = send_buf.write(buf).unwrap();
                     let ret = send_stream.send_data(send_buf.into_inner().freeze(),false);
@@ -91,7 +91,7 @@ impl AsyncRead for AsyncReadPart{
                 Poll::Ready(Some(ret)) => match ret {
                     Ok(chunk) => {
                         p_self.inner.flow_control().release_capacity(chunk.len()).unwrap();
-                        let cap = p_self.inner.flow_control().available_capacity();
+                        let _cap = p_self.inner.flow_control().available_capacity();
                         p_self.buf = chunk.reader();
                     }
                     Err(e) => return Poll::Ready(Err(Error::new(ErrorKind::Other, format!("oh no! {}",e)))),
@@ -111,7 +111,7 @@ pub fn run_client(){
     let client_task = async{
 
         let tcp = tokio::net::TcpStream::connect("127.0.0.1:5928").await.unwrap();
-        tcp.set_nodelay(true);
+        tcp.set_nodelay(true).unwrap();
         let (mut client, h2) = h2::client::handshake(tcp).await.unwrap();
         tokio::spawn(async move {
             if let Err(e) = h2.await {
@@ -167,7 +167,7 @@ pub fn run_server(){
         loop {
             if let Ok((socket, _peer_addr)) = listener.accept().await {
                 tokio::spawn(async {
-                    socket.set_nodelay(true);
+                    socket.set_nodelay(true).unwrap();
                     let mut h2 = server::handshake(socket).await.unwrap();
                     while let Some(request) = h2.accept().await {
                         let stream_session = async move{
